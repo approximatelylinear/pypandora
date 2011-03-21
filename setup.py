@@ -4,7 +4,11 @@ from platform import machine
 
 
 fmodlib = "fmodex-4.32.09"
-if machine() == "x86_64": fmodlib = "fmodex64-4.32.09"
+pdatalib = "libfmodex-4.32.09.so"
+if machine() == "x86_64":
+    fmodlib = "fmodex64-4.32.09"
+    pdatalib = "libfmodex64-4.32.09.so"
+
 
 pandora_module = Extension(
     'pypandora._pandora',
@@ -28,11 +32,11 @@ setup(
     packages = find_packages('.'),
     package_dir = {'':'.'},
     data_files=[
-        ('.', ['README','MANIFEST.in']),
+        ('.', ['README']),
     ],
     package_data = {
-        'pypandora': ['templates/*.xml',],
-        'pypandora': ['lib/*.so',],
+        'pypandora': ['templates/*.xml'],
+        'pypandora': ['lib/%s' % pdatalib],
     },
     include_package_data=True,
 
