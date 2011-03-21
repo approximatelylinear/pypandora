@@ -12,8 +12,8 @@ pandora_module = Extension(
         'pypandora/_pandora/main.c',
         'pypandora/_pandora/crypt.c',
     ],
-    include_dirs = ["pypandora/include"]
-    library_dirs = ["pypandora/lib"]
+    include_dirs = ["pypandora/include"],
+    library_dirs = ["pypandora/lib"],
     libraries = [fmodlib],
 )
 
