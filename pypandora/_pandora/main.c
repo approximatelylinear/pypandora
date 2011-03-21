@@ -184,7 +184,7 @@ static PyObject* pandora_encrypt(PyObject *self, PyObject *args) {
     return Py_BuildValue("s", payload);
 }
 
-static void cleanup() {
+static void cleanup(void) {
     (void)FMOD_Sound_Release(music);
     (void)FMOD_System_Close(sound_system);
     (void)FMOD_System_Release(sound_system);

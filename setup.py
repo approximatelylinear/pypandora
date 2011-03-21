@@ -4,7 +4,7 @@ from platform import machine
 
 
 fmodlib = "fmodex-4.32.09"
-if machine() == "x86_84": fmodlib = "fmodex64-4.32.09"
+if machine() == "x86_64": fmodlib = "fmodex64-4.32.09"
 
 pandora_module = Extension(
     '_pandora',
