@@ -1,5 +1,10 @@
 import os
 from setuptools import setup, find_packages, Extension
+from platform import machine
+
+
+fmodlib = "fmodex-4.32.09"
+if machine() == "x86_84": fmodlib = "fmodex64-4.32.09"
 
 pandora_module = Extension(
     '_pandora',
@@ -7,7 +12,9 @@ pandora_module = Extension(
         'pypandora/_pandora/main.c',
         'pypandora/_pandora/crypt.c',
     ],
-    libraries = ['fmodex',],
+    include_dirs = ["pypandora/include"]
+    library_dirs = ["pypandora/lib"]
+    libraries = [fmodlib],
 )
 
 setup(
