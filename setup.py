@@ -7,14 +7,14 @@ fmodlib = "fmodex-4.32.09"
 if machine() == "x86_64": fmodlib = "fmodex64-4.32.09"
 
 pandora_module = Extension(
-    '_pandora',
+    'pypandora._pandora',
     sources = [
         'pypandora/_pandora/main.c',
         'pypandora/_pandora/crypt.c',
     ],
     include_dirs = ["pypandora/include"],
     library_dirs = ["pypandora/lib"],
-    extra_link_args = ["-Wl,-rpath=."],
+    extra_link_args = ["-Wl,-rpath=./lib"],
     libraries = [fmodlib],
 )
 
@@ -32,6 +32,7 @@ setup(
     ],
     package_data = {
         'pypandora': ['templates/*.xml',],
+        'pypandora': ['lib/*.so',],
     },
     include_package_data=True,
 

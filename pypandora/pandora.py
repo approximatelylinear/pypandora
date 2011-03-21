@@ -6,6 +6,7 @@ from string import Template
 import httplib
 import urllib
 from os.path import join, abspath, dirname, exists
+from os import chdir
 import re
 from urlparse import urlsplit
 import socket
@@ -14,7 +15,6 @@ import math
 from optparse import OptionParser
 from tempfile import gettempdir
 
-import _pandora
 
 
 
@@ -22,7 +22,10 @@ import _pandora
 THIS_DIR = dirname(abspath(__file__))
 TEMPLATE_DIR = join(THIS_DIR, "templates")
 
-
+# we need to change to the directory of the module because _pandora looks
+# for fmodex relative to its own location
+chdir(THIS_DIR)
+import _pandora
 
 
 
