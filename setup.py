@@ -14,6 +14,7 @@ pandora_module = Extension(
     ],
     include_dirs = ["pypandora/include"],
     library_dirs = ["pypandora/lib"],
+    extra_link_args = ["-Wl,-rpath=."],
     libraries = [fmodlib],
 )
 
@@ -26,7 +27,9 @@ setup(
 
     packages = find_packages('.'),
     package_dir = {'':'.'},
-    data_files=[('.', ['README','MANIFEST.in']),],
+    data_files=[
+        ('.', ['README','MANIFEST.in']),
+    ],
     package_data = {
         'pypandora': ['templates/*.xml',],
     },
