@@ -437,11 +437,12 @@ class Song(object):
         c = httplib.HTTPConnection(host)
         c.request("GET", path, headers={"Range": "bytes=%d-" % 0})
         res = c.getresponse()
+        total_length = int(res.getheader("content-length"))
 
         h = open(self.filename, "w")
 
         data = res.read(4096)
-        _pandora.play_music(data)
+        _pandora.play(data, total_length)
         h.write(data)
 
         while True:

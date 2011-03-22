@@ -205,21 +205,30 @@ DEF_PANDORA_FN(bufferMusic) {
 static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
     const char *data = NULL;
     unsigned int data_length;
-    if (!PyArg_ParseTuple(args, "s#", &data, &data_length)) return NULL;
+    unsigned int total_length;
+
+    if (!PyArg_ParseTuple(args, "s#i", &data, &data_length, &total_length)) return NULL;
+
+    FMOD_CREATESOUNDEXINFO exinfo;
+    memset(&exinfo, 0, sizeof(FMOD_CREATESOUNDEXINFO));
+    exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
+    exinfo.length = total_length;
 
     // buffer the music
     free((void *)audio_data); audio_data_length = 0;
     _bufferMusic(data, data_length);
 
     FMOD_RESULT res;
+    // if there's already music, release it to avoid memory leak
     if (music != NULL) {
         res = FMOD_Channel_Stop(channel);
         pandora_fmod_errcheck(res);
 
-        res = FMOD_Sound_Release(music); // avoid memory leak...
+        res = FMOD_Sound_Release(music);
         pandora_fmod_errcheck(res);
     }
-    res = FMOD_System_CreateSound(sound_system, audio_data, FMOD_SOFTWARE | FMOD_OPENMEMORY, 0, &music);
+
+    res = FMOD_System_CreateSound(sound_system, audio_data, FMOD_SOFTWARE | FMOD_OPENMEMORY | FMOD_CREATESTREAM, &exinfo, &music);
     pandora_fmod_errcheck(res);
     res = FMOD_System_PlaySound(sound_system, FMOD_CHANNEL_FREE, music, 0, &channel);
     pandora_fmod_errcheck(res);
@@ -233,6 +242,7 @@ static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
     unsigned int length;
     res = FMOD_Sound_GetLength(music, &length, FMOD_TIMEUNIT_MS);
     pandora_fmod_errcheck(res);
+
     return Py_BuildValue("i", (int)((float)length / 1000.0f));
 }
 
