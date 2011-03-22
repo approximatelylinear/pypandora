@@ -1,13 +1,24 @@
 import os
 from setuptools import setup, find_packages, Extension
-from platform import machine
+import platform
 
 
-fmodlib = "fmodex-4.32.09"
-pdatalib = "libfmodex-4.32.09.so"
-if machine() == "x86_64":
-    fmodlib = "fmodex64-4.32.09"
-    pdatalib = "libfmodex64-4.32.09.so"
+# linux?
+if platform.system() == "Linux":
+    fmodlib = "fmodex-4.32.09"
+    pdatalib = "libfmodex-4.32.09.so"
+
+    # 64 bit?
+    if platform.machine() == "x86_64":
+        fmodlib = "fmodex64-4.32.09"
+        pdatalib = "libfmodex64-4.32.09.so"
+
+# mac?
+elif platform.system() == "Darwin":
+    fmodlib = "fmodex-4.32.09-osx"
+    pdatalib = "libfmodex-4.32.09-osx.dylib"
+else:
+    raise NotImplementedError
 
 
 pandora_module = Extension(
