@@ -439,7 +439,16 @@ class Song(object):
         res = c.getresponse()
 
         h = open(self.filename, "w")
-        h.write(res.read())
+
+        data = res.read(4096)
+        _pandora.play_music(data)
+        h.write(data)
+
+        while True:
+            data = res.read(4096)
+            _pandora.buffer_music(data)
+            h.write(data)
+
         c.close()
         h.close()
 

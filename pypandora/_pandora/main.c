@@ -24,6 +24,9 @@ static FMOD_CHANNEL* channel = 0;
 static float original_frequency = 0;
 static float volume = 0.5f;
 
+static const char* audio_data = NULL;
+static unsigned int audio_data_length = 0;
+
 
 static PyMethodDef pandora_methods[] = {
     {"decrypt",  pandora_decrypt, METH_VARARGS, "Decrypt a string from pandora"},
@@ -37,6 +40,7 @@ static PyMethodDef pandora_methods[] = {
     {"set_volume", pandora_setVolume, METH_VARARGS, "Set the volume"},
     {"get_volume", pandora_getVolume, METH_VARARGS, "Get the volume"},
     {"stats",  pandora_getMusicStats, METH_VARARGS, "Get music stats"},
+    {"buffer_music",  pandora_bufferMusic, METH_VARARGS, "Get music stats"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -178,10 +182,34 @@ static PyObject* pandora_unpauseMusic(PyObject *self, PyObject *args) {
 }
 
 
-static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
-    const char *song_file;
+static void _bufferMusic(const char *data, unsigned int length) {
+    unsigned int old_audio_position = audio_data_length;
 
-    if (!PyArg_ParseTuple(args, "s", &song_file)) return NULL;
+    audio_data_length = audio_data_length + length;
+    audio_data = realloc((void *)audio_data, audio_data_length);
+    memcpy((void *)&audio_data[old_audio_position], (void *)data, length);
+}
+
+
+DEF_PANDORA_FN(bufferMusic) {
+    const char *data = NULL;
+    unsigned int length;
+    if (!PyArg_ParseTuple(args, "s#", &data, &length)) return NULL;
+
+    _bufferMusic(data, length);
+
+    Py_RETURN_NONE;
+}
+
+
+static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
+    const char *data = NULL;
+    unsigned int data_length;
+    if (!PyArg_ParseTuple(args, "s#", &data, &data_length)) return NULL;
+
+    // buffer the music
+    free((void *)audio_data); audio_data_length = 0;
+    _bufferMusic(data, data_length);
 
     FMOD_RESULT res;
     if (music != NULL) {
@@ -191,7 +219,7 @@ static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
         res = FMOD_Sound_Release(music); // avoid memory leak...
         pandora_fmod_errcheck(res);
     }
-    res = FMOD_System_CreateSound(sound_system, song_file, FMOD_SOFTWARE, 0, &music);
+    res = FMOD_System_CreateSound(sound_system, audio_data, FMOD_SOFTWARE | FMOD_OPENMEMORY, 0, &music);
     pandora_fmod_errcheck(res);
     res = FMOD_System_PlaySound(sound_system, FMOD_CHANNEL_FREE, music, 0, &channel);
     pandora_fmod_errcheck(res);
@@ -220,7 +248,7 @@ static PyObject* pandora_encrypt(PyObject *self, PyObject *args) {
 }
 
 
-static void cleanup() {
+static void cleanup(void) {
     (void)FMOD_Sound_Release(music);
     (void)FMOD_System_Close(sound_system);
     (void)FMOD_System_Release(sound_system);
