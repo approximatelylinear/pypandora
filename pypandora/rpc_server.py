@@ -2,6 +2,8 @@ import eventlet
 eventlet.monkey_patch()
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
+import SimpleHTTPServer
+import SocketServer
 import pypandora
 import logging
 
@@ -97,12 +99,18 @@ class PandoraServerProxy(object):
     
         
 def serve(ip="localhost", port=8123):
+    http_handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+    httpd = SocketServer.TCPServer((ip, port+1), http_handler)
+
     server = SimpleXMLRPCServer((ip, port), allow_none=True)
     server.register_introspection_functions()
 
     server.register_instance(PandoraServerProxy())    
-    t = eventlet.spawn(server.serve_forever)
-    t.wait()
+    xml_thread = eventlet.spawn(server.serve_forever)
+    http_thread = eventlet.spawn(httpd.serve_forever)
+
+    xml_thread.wait()
+    http_thread.wait()
     
     
     
