@@ -228,8 +228,10 @@ static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
     memset(&exinfo, 0, sizeof(FMOD_CREATESOUNDEXINFO));
     exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
     exinfo.length = total_length;
-    exinfo.userasyncread = _asyncReadAudio;
+    exinfo.userread = &_asyncReadAudio;
     exinfo.format = FMOD_SOUND_TYPE_MPEG;
+    exinfo.defaultfrequency = 44100;
+    exinfo.numchannels = 2;
 
     // buffer the music
     if (NULL == audio_buffer) free((void *)audio_buffer); audio_buffer_length = 0;
@@ -245,8 +247,9 @@ static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
         pandora_fmod_errcheck(res);
     }
 
-    res = FMOD_System_CreateSound(sound_system, (char *)audio_buffer, FMOD_SOFTWARE | FMOD_OPENMEMORY | FMOD_CREATESTREAM, &exinfo, &music);
+    res = FMOD_System_CreateSound(sound_system, 0, FMOD_CREATESTREAM | FMOD_2D | FMOD_HARDWARE | FMOD_OPENUSER, &exinfo, &music);
     pandora_fmod_errcheck(res);
+    printf("herp\n");
     res = FMOD_System_PlaySound(sound_system, FMOD_CHANNEL_FREE, music, 0, &channel);
     pandora_fmod_errcheck(res);
 
