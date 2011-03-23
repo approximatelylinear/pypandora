@@ -4,6 +4,7 @@
 #include <fmodex/fmod.h>
 #include <fmodex/fmod_errors.h>
 #include <time.h>
+#include <pthread.h>
 
 
 #ifndef MIN
@@ -24,8 +25,8 @@ static FMOD_CHANNEL* channel = 0;
 static float original_frequency = 0;
 static float volume = 0.5f;
 
-static const char* audio_data = NULL;
-static unsigned int audio_data_length = 0;
+static unsigned char* audio_buffer = NULL;
+static unsigned int audio_buffer_length = 0;
 
 
 static PyMethodDef pandora_methods[] = {
@@ -182,17 +183,18 @@ static PyObject* pandora_unpauseMusic(PyObject *self, PyObject *args) {
 }
 
 
-static void _bufferMusic(const char *data, unsigned int length) {
-    unsigned int old_audio_position = audio_data_length;
+static void _bufferMusic(unsigned char *data, unsigned int length) {
+    unsigned int old_audio_position = audio_buffer_length;
 
-    audio_data_length = audio_data_length + length;
-    audio_data = realloc((void *)audio_data, audio_data_length);
-    memcpy((void *)&audio_data[old_audio_position], (void *)data, length);
+    audio_buffer_length = audio_buffer_length + length;
+    audio_buffer = (unsigned char *)realloc((void *)audio_buffer, audio_buffer_length);
+    //printf("preparing to copy %d bytes at position %d %d\n", length, old_audio_position, audio_buffer_length);
+    memcpy(audio_buffer + old_audio_position, data, length);
 }
 
 
 DEF_PANDORA_FN(bufferMusic) {
-    const char *data = NULL;
+    unsigned char *data = NULL;
     unsigned int length;
     if (!PyArg_ParseTuple(args, "s#", &data, &length)) return NULL;
 
@@ -202,8 +204,21 @@ DEF_PANDORA_FN(bufferMusic) {
 }
 
 
+FMOD_FILE_ASYNCREADCALLBACK _asyncReadAudio(FMOD_ASYNCREADINFO *info, void *user_data) {
+    printf("HERE\n");
+    exit(1);
+    if (info->sizebytes > audio_buffer_length) {
+        return FMOD_ERR_NOTREADY;
+    }
+    memcpy(info->buffer, (void *)audio_buffer, audio_buffer_length);
+    info->bytesread = audio_buffer_length;
+    info->result = FMOD_OK;
+    return FMOD_OK;
+}
+
+
 static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
-    const char *data = NULL;
+    unsigned char *data = NULL;
     unsigned int data_length;
     unsigned int total_length;
 
@@ -213,9 +228,11 @@ static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
     memset(&exinfo, 0, sizeof(FMOD_CREATESOUNDEXINFO));
     exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
     exinfo.length = total_length;
+    exinfo.userasyncread = _asyncReadAudio;
+    exinfo.format = FMOD_SOUND_TYPE_MPEG;
 
     // buffer the music
-    free((void *)audio_data); audio_data_length = 0;
+    if (NULL == audio_buffer) free((void *)audio_buffer); audio_buffer_length = 0;
     _bufferMusic(data, data_length);
 
     FMOD_RESULT res;
@@ -228,7 +245,7 @@ static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
         pandora_fmod_errcheck(res);
     }
 
-    res = FMOD_System_CreateSound(sound_system, audio_data, FMOD_SOFTWARE | FMOD_OPENMEMORY | FMOD_CREATESTREAM, &exinfo, &music);
+    res = FMOD_System_CreateSound(sound_system, (char *)audio_buffer, FMOD_SOFTWARE | FMOD_OPENMEMORY | FMOD_CREATESTREAM, &exinfo, &music);
     pandora_fmod_errcheck(res);
     res = FMOD_System_PlaySound(sound_system, FMOD_CHANNEL_FREE, music, 0, &channel);
     pandora_fmod_errcheck(res);
