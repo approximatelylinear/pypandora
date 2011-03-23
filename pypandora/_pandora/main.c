@@ -204,11 +204,18 @@ DEF_PANDORA_FN(bufferMusic) {
 }
 
 
+
+FMOD_FILE_OPENCALLBACK _openAudio(const char *name, int unicode, unsigned int *filesize, void **handle, void **userdata) {
+    printf("HERE\n");
+}
+
 FMOD_FILE_ASYNCREADCALLBACK _asyncReadAudio(FMOD_ASYNCREADINFO *info, void *user_data) {
+    info->result = FMOD_OK;
+    return FMOD_OK;
     printf("HERE\n");
     exit(1);
     if (info->sizebytes > audio_buffer_length) {
-        return FMOD_ERR_NOTREADY;
+        return FMOD_OK;
     }
     memcpy(info->buffer, (void *)audio_buffer, audio_buffer_length);
     info->bytesread = audio_buffer_length;
@@ -228,7 +235,8 @@ static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
     memset(&exinfo, 0, sizeof(FMOD_CREATESOUNDEXINFO));
     exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
     exinfo.length = total_length;
-    exinfo.userread = &_asyncReadAudio;
+    exinfo.useropen = &_openAudio;
+    exinfo.userasyncread = &_asyncReadAudio;
     exinfo.format = FMOD_SOUND_TYPE_MPEG;
     exinfo.defaultfrequency = 44100;
     exinfo.numchannels = 2;
@@ -247,11 +255,16 @@ static PyObject* pandora_playMusic(PyObject *self, PyObject *args) {
         pandora_fmod_errcheck(res);
     }
 
-    res = FMOD_System_CreateSound(sound_system, 0, FMOD_CREATESTREAM | FMOD_2D | FMOD_HARDWARE | FMOD_OPENUSER, &exinfo, &music);
+    FMOD_MODE mode = FMOD_2D | FMOD_HARDWARE | FMOD_OPENUSER | FMOD_NONBLOCKING;
+    res = FMOD_System_CreateSound(sound_system, 0, mode, &exinfo, &music);
     pandora_fmod_errcheck(res);
-    printf("herp\n");
+    printf("about to play\n");
     res = FMOD_System_PlaySound(sound_system, FMOD_CHANNEL_FREE, music, 0, &channel);
     pandora_fmod_errcheck(res);
+
+    
+    printf("returning\n");
+    return Py_BuildValue("i", 123);
 
     res = FMOD_Channel_GetFrequency(channel, &original_frequency);
     pandora_fmod_errcheck(res);
